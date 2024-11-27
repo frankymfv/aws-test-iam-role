@@ -13,6 +13,7 @@ type AWSConfig struct {
 	Region          string
 	SdkEndpoint     string
 	S3BucketTest    string
+	SqsQueueUrl     string
 }
 
 func LoadCfg() *AWSConfig {
@@ -27,11 +28,13 @@ func LoadCfg() *AWSConfig {
 	region := os.Getenv("REGION")
 	sdkEndpoint := os.Getenv("SDK_ENDPOINT")
 	s3BucketTest := os.Getenv("S3_BUCKET_TEST")
+	sqsQueueURL := os.Getenv("SQS_QUEUE_URL")
 	return &AWSConfig{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
 		Region:          region,
 		SdkEndpoint:     sdkEndpoint,
 		S3BucketTest:    s3BucketTest,
+		SqsQueueUrl:     sqsQueueURL,
 	}
 }

@@ -3,6 +3,7 @@ package awsv1
 import (
 	"aws_test_iam_role/config"
 	"fmt"
+	"github.com/aws/aws-sdk-go/service/sqs"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -89,4 +90,33 @@ func Setup(awsCfg *config.AWSConfig) *s3.S3 {
 	sess := session.Must(session.NewSession(config))
 	svc := s3.New(sess)
 	return svc
+}
+
+func InitSqs(awsCfg *config.AWSConfig) *sqs.SQS {
+	// init sqs client
+	cfg := NewConfigAwsV1(awsCfg)
+	cfg.S3ForcePathStyle = aws.Bool(true)
+
+	sess := session.Must(session.NewSession(cfg))
+	s := sqs.New(sess)
+	return s
+}
+
+func SendMessageToQueue(awsCfg *config.AWSConfig, messageBody string) {
+	fmt.Println("========= START SendMessageToQueue ===============")
+	svc := InitSqs(awsCfg)
+	queueUrl := awsCfg.SqsQueueUrl
+	input := &sqs.SendMessageInput{
+		MessageBody: aws.String(messageBody),
+		QueueUrl:    aws.String(queueUrl),
+	}
+
+	result, err := svc.SendMessage(input)
+	if err != nil {
+		log.Fatalf("Failed to send message to queue %q, %v", queueUrl, err)
+	}
+
+	log.Printf("Message sent to queue %q, message ID: %s", queueUrl, *result.MessageId)
+	fmt.Println("========= END SendMessageToQueue ===============")
+
 }
