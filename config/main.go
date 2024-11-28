@@ -14,6 +14,7 @@ type AWSConfig struct {
 	SdkEndpoint     string
 	S3BucketTest    string
 	SqsQueueUrl     string
+	KmsKeyID        string
 }
 
 func LoadCfg() *AWSConfig {
@@ -29,6 +30,7 @@ func LoadCfg() *AWSConfig {
 	sdkEndpoint := os.Getenv("SDK_ENDPOINT")
 	s3BucketTest := os.Getenv("S3_BUCKET_TEST")
 	sqsQueueURL := os.Getenv("SQS_QUEUE_URL")
+	kmsKeyID := os.Getenv("KMS_KEY_ID")
 	return &AWSConfig{
 		AccessKeyID:     accessKeyID,
 		SecretAccessKey: secretAccessKey,
@@ -36,5 +38,6 @@ func LoadCfg() *AWSConfig {
 		SdkEndpoint:     sdkEndpoint,
 		S3BucketTest:    s3BucketTest,
 		SqsQueueUrl:     sqsQueueURL,
+		KmsKeyID:        kmsKeyID,
 	}
 }

@@ -22,5 +22,6 @@ func main() {
 	awsv1.QueryS3withSetup(awscfg)
 	awsv1.QueryS3withInitS3Config(awscfg)
 	awsv1.SendMessageToQueue(awscfg, "hello world 222")
+	awsv1.TestKMS(awscfg)
 
 }

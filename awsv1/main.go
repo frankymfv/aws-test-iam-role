@@ -2,9 +2,13 @@ package awsv1
 
 import (
 	"aws_test_iam_role/config"
+	"crypto/tls"
 	"fmt"
+	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/service/kms"
 	"github.com/aws/aws-sdk-go/service/sqs"
 	"log"
+	"net"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -113,10 +117,74 @@ func SendMessageToQueue(awsCfg *config.AWSConfig, messageBody string) {
 
 	result, err := svc.SendMessage(input)
 	if err != nil {
-		log.Fatalf("Failed to send message to queue %q, %v", queueUrl, err)
+		fmt.Printf("Failed to send message to queue %q, %v", queueUrl, err)
+		return
 	}
 
 	log.Printf("Message sent to queue %q, message ID: %s", queueUrl, *result.MessageId)
 	fmt.Println("========= END SendMessageToQueue ===============")
+}
 
+func TestKMS(cfg *config.AWSConfig) {
+	fmt.Printf("\n========= START TestKMS ===============")
+	const (
+		// Total timeout of kms request
+		reqTotalTimeout = 120 * time.Second
+		// Timeout of TCP connection
+		reqConnectionTimeout = 30 * time.Second
+		// Timeout of HTTP response headers
+		respHeaderTimeout = 30 * time.Second
+		// Timeout of TLS handshake
+		tlsHandshakeTimeout = 30 * time.Second
+		// Timeout of idle connection
+		idleConnTimeout = 30 * time.Second
+		// Inteval of sending TCP Keep-Alive packets to a remote host for connection validation
+		// Keep Alive Interval should greater than the Idle Timeout. DefaultTransport KeepAlive is 30s.
+		connKeepAlive = 90 * time.Second
+		// Maximum retries
+		numAttempts = 5
+		// maximum number of idle connections
+		maxIdleConnections = 100
+		// maximum number of idle connections of each host
+		maxIdleConnPerHost = 10
+	)
+
+	awsCfg := NewConfigAwsV1(cfg)
+	awsCfg.HTTPClient = &http.Client{
+		Timeout: reqTotalTimeout,
+		Transport: &http.Transport{
+			Dial: (&net.Dialer{
+				Timeout:   reqConnectionTimeout,
+				KeepAlive: connKeepAlive,
+			}).Dial,
+			IdleConnTimeout:       idleConnTimeout,
+			ResponseHeaderTimeout: respHeaderTimeout,
+			TLSHandshakeTimeout:   tlsHandshakeTimeout,
+			TLSClientConfig: &tls.Config{
+				MinVersion: tls.VersionTLS12,
+			},
+			ForceAttemptHTTP2:   true,
+			MaxIdleConns:        maxIdleConnections,
+			MaxIdleConnsPerHost: maxIdleConnPerHost,
+		},
+	}
+	awsCfg.Retryer = client.DefaultRetryer{
+		NumMaxRetries: numAttempts,
+	}
+	awsCfg.MaxRetries = aws.Int(numAttempts)
+
+	sess := session.Must(
+		session.NewSession(awsCfg),
+	)
+	awsKms := kms.New(sess)
+	dataKey, err := awsKms.GenerateDataKeyWithoutPlaintext(&kms.GenerateDataKeyWithoutPlaintextInput{
+		KeyId:   aws.String(cfg.KmsKeyID),
+		KeySpec: aws.String("AES_256"),
+	})
+	if err != nil {
+		fmt.Printf("\nFailed to generate data key, %v\n", err)
+		return
+	}
+	fmt.Println("Data key: ", dataKey)
+	fmt.Println("========= END TestKMS ===============")
 }
